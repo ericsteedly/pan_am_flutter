@@ -21,14 +21,28 @@ flutter build web        # Web
 
 ## Architecture
 
-This is an early-stage Flutter app. The intended stack based on installed dependencies:
-
-- **State management**: Riverpod (`flutter_riverpod` ^3.3.1) — wrap `main()` with `ProviderScope` before adding providers
+- **State management**: Riverpod (`flutter_riverpod` ^3.3.1) — `ProviderScope` wraps `main()` in `main.dart`
 - **HTTP**: Dio (`dio` ^5.9.2) — for API requests
+- **Navigation**: GoRouter (`go_router` ^17.2.1) — router defined in `lib/app.dart`
 - **Platforms**: Android, iOS, Web, Linux, macOS, Windows all enabled
-- **Patterns** MVVM
+- **Pattern**: MVVM
 
-No feature structure, navigation, or layering has been established yet. When adding features, place code under `lib/` with a feature-based folder structure (e.g., `lib/features/<feature>/`).
+## Screens & Routes
+
+Screens live flat under `lib/screens/`. Routes are declared in `lib/app.dart`:
+
+| Route | Screen | Notes |
+|---|---|---|
+| `/login` | `LoginScreen` | Initial route |
+| `/register` | `RegisterScreen` | |
+| `/search` | `SearchScreen` | |
+| `/results` | `ResultsScreen` | |
+| `/purchase` | `PurchaseScreen` | |
+| `/bookings` | `BookingsScreen` | |
+| `/booking/:id` | `BookingScreen` | Detail view for a booking |
+| `/account/:id` | `AccountScreen` | User account/profile |
+
+When adding new screens, register a route in `lib/app.dart` and place the screen file under `lib/screens/`. For new feature code (providers, services, models), use `lib/features/<feature>/`.
 
 ## Validation
 
