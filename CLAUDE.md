@@ -27,8 +27,13 @@ flutter build web        # Web
 - **Platforms**: Android, iOS, Web, Linux, macOS, Windows all enabled
 - **Pattern**: MVVM
 
-## Screens & Routes
+## Architecture Rules
+- All HTTP calls live in services/ only
+- ViewModels expose state via Riverpod providers, never call HTTP directly
+- Screens are dumb — they only read from providers and call ViewModel methods
+- No business logic in widget build() methods
 
+## Screens & Routes
 Screens live flat under `lib/screens/`. Routes are declared in `lib/app.dart`:
 
 | Route | Screen | Notes |
