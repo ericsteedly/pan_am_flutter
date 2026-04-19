@@ -40,6 +40,18 @@ This project uses layer-first organization. Do NOT use lib/features/.
 All models go in lib/models/, providers in lib/providers/,
 services in lib/services/, screens in lib/screens/.
 
+## Models
+
+Data models live in `lib/models/`. Each is a pure data class with a `fromJson` factory and `toJson` method — no business logic.
+
+| File | Class(es) | Notes |
+| --- | --- | --- |
+| `airport.dart` | `Airport` | |
+| `payment.dart` | `Payment` | `cardNumber` nullable — absent in nested Account responses |
+| `flight.dart` | `Flight` | Imports `Airport` |
+| `account.dart` | `Account` | Imports `Payment`; flattens nested `customer` object |
+| `booking.dart` | `Booking`, `Ticket` | `Ticket` is an inline deserialization helper; `paymentId` and `rewardsPayment` are nullable |
+
 ## Screens & Routes
 
 Screens live flat under `lib/screens/`. Routes are declared in `lib/app.dart`:
