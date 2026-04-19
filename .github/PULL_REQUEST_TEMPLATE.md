@@ -46,6 +46,11 @@
 <!-- Anything that could break, needs a second opinion, or is intentionally left for a follow-up. Write "None" if clean. -->
 
 # Checklist
+(flutter)
+- [ ] Model parses real API response
+- [ ] ViewModel handles loading/error/success states
+- [ ] Screen reads from provider only, no direct service calls
+- [ ] No business logic in build()
 
 - [ ] Tests written and passing locally
 - [ ] No new linting errors
