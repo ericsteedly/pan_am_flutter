@@ -28,26 +28,32 @@ flutter build web        # Web
 - **Pattern**: MVVM
 
 ## Architecture Rules
+
 - All HTTP calls live in services/ only
 - ViewModels expose state via Riverpod providers, never call HTTP directly
 - Screens are dumb — they only read from providers and call ViewModel methods
 - No business logic in widget build() methods
 
+## Project Structure
+
+This project uses layer-first organization. Do NOT use lib/features/.
+All models go in lib/models/, providers in lib/providers/,
+services in lib/services/, screens in lib/screens/.
+
 ## Screens & Routes
+
 Screens live flat under `lib/screens/`. Routes are declared in `lib/app.dart`:
 
-| Route | Screen | Notes |
-|---|---|---|
-| `/login` | `LoginScreen` | Initial route |
-| `/register` | `RegisterScreen` | |
-| `/search` | `SearchScreen` | |
-| `/results` | `ResultsScreen` | |
-| `/purchase` | `PurchaseScreen` | |
-| `/bookings` | `BookingsScreen` | |
-| `/booking/:id` | `BookingScreen` | Detail view for a booking |
-| `/account/:id` | `AccountScreen` | User account/profile |
-
-When adding new screens, register a route in `lib/app.dart` and place the screen file under `lib/screens/`. For new feature code (providers, services, models), use `lib/features/<feature>/`.
+| Route          | Screen           | Notes                     |
+| -------------- | ---------------- | ------------------------- |
+| `/login`       | `LoginScreen`    | Initial route             |
+| `/register`    | `RegisterScreen` |                           |
+| `/search`      | `SearchScreen`   |                           |
+| `/results`     | `ResultsScreen`  |                           |
+| `/purchase`    | `PurchaseScreen` |                           |
+| `/bookings`    | `BookingsScreen` |                           |
+| `/booking/:id` | `BookingScreen`  | Detail view for a booking |
+| `/account/:id` | `AccountScreen`  | User account/profile      |
 
 ## Validation
 
