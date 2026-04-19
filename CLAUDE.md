@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Description
+
+This is a frontend mock flight-booking application that retrieves available flights from an api based on user input query from this front end. Users authenticate and have an account where they can edit there personal information and store payment methods as well as flight bookings.
+
 ## Commands
 
 ```bash
@@ -22,6 +26,7 @@ This is an early-stage Flutter app. The intended stack based on installed depend
 - **State management**: Riverpod (`flutter_riverpod` ^3.3.1) — wrap `main()` with `ProviderScope` before adding providers
 - **HTTP**: Dio (`dio` ^5.9.2) — for API requests
 - **Platforms**: Android, iOS, Web, Linux, macOS, Windows all enabled
+- **Patterns** MVVM
 
 No feature structure, navigation, or layering has been established yet. When adding features, place code under `lib/` with a feature-based folder structure (e.g., `lib/features/<feature>/`).
 
