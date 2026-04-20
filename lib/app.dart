@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -8,9 +7,24 @@ import 'screens/booking_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/purchase_screen.dart';
+import 'providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
+  redirect: (context, state) {
+    final container = ProviderScope.containerOf(context);
+    final authState = container.read(authProvider);
+
+    final isLoggedIn = authState.value != null;
+    final isOnAuthRoute =
+        state.matchedLocation == '/login' ||
+        state.matchedLocation == '/register';
+
+    if (!isLoggedIn && !isOnAuthRoute) return '/login';
+    if (isLoggedIn && isOnAuthRoute) return '/search';
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/login',

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
+import 'services/storage_service.dart';
 
-void main() {
+void main() async {
+  //TEMP TOKEN DELETE, REMOVE AFTER LOGOUT CREATED
+  WidgetsFlutterBinding.ensureInitialized();
+  await StorageService.deleteToken();
+  //
   runApp(const ProviderScope(child: MainApp()));
 }
 
