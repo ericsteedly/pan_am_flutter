@@ -1,4 +1,3 @@
-// lib/models/auth_token.dart
 class AuthToken {
   final String token;
 

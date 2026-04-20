@@ -1,4 +1,3 @@
-// lib/models/login_request.dart
 class LoginRequest {
   final String username;
   final String password;
