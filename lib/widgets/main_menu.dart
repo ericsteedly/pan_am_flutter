@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/auth_provider.dart';
 
-class MainMenu extends StatelessWidget {
-  const MainMenu({super.key, this.onLogout});
-
-  final VoidCallback? onLogout;
+class MainMenu extends ConsumerWidget {
+  const MainMenu({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.menu, color: Colors.white, size: 32),
       offset: const Offset(0, 56),
@@ -21,7 +21,7 @@ class MainMenu extends StatelessWidget {
           case 'bookings':
             context.go('/bookings');
           case 'logout':
-            onLogout?.call();
+            ref.read(authProvider.notifier).logout();
         }
       },
       itemBuilder: (_) => const [

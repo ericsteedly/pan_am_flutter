@@ -18,17 +18,11 @@ class AuthNotifier extends AsyncNotifier<AuthToken?> {
   Future<void> login(String username, String password) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      try {
-        final token = await _authService.login(
-          LoginRequest(username: username, password: password),
-        );
-        await StorageService.writeToken(token.token);
-        return token;
-      } catch (e) {
-        //remove
-        print('Login error: ${e}');
-        rethrow;
-      }
+      final token = await _authService.login(
+        LoginRequest(username: username, password: password),
+      );
+      await StorageService.writeToken(token.token);
+      return token;
     });
   }
 

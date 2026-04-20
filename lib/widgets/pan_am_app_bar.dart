@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'main_menu.dart';
 
 class PanAmAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const PanAmAppBar({super.key, this.onLogout});
-
-  final VoidCallback? onLogout;
+  const PanAmAppBar({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(120.0);
@@ -37,7 +35,7 @@ class PanAmAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
       ),
-      actions: [MainMenu(onLogout: onLogout)],
+      actions: const [MainMenu()],
     );
   }
 }
