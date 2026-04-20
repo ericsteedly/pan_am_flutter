@@ -7,8 +7,7 @@ class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() =>
-      _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
@@ -25,10 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     await ref
         .read(authProvider.notifier)
-        .login(
-          _usernameController.text,
-          _passwordController.text,
-        );
+        .login(_usernameController.text, _passwordController.text);
   }
 
   @override
@@ -50,17 +46,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           children: [
             TextField(
               controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-              ),
+              decoration: const InputDecoration(labelText: 'Username'),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-              ),
+              decoration: const InputDecoration(labelText: 'Password'),
             ),
             const SizedBox(height: 24),
             authState.isLoading
@@ -72,11 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             if (authState.hasError)
               Text(
                 'Login failed. Check your credentials.',
-                style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.error,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
           ],
         ),

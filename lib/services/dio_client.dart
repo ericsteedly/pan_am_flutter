@@ -8,9 +8,5 @@ final dio =
         ),
       )
       ..interceptors.add(
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          error: true,
-        ),
+        LogInterceptor(requestBody: true, responseBody: true, error: true),
       );

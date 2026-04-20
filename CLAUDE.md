@@ -22,8 +22,9 @@ flutter build web        # Web
 ## Architecture
 
 - **State management**: Riverpod (`flutter_riverpod` ^3.3.1) — `ProviderScope` wraps `main()` in `main.dart`
-- **HTTP**: Dio (`dio` ^5.9.2) — for API requests
-- **Navigation**: GoRouter (`go_router` ^17.2.1) — router defined in `lib/app.dart`
+- **HTTP**: Dio (`dio` ^5.9.2) — global instance configured in `lib/services/dio_client.dart` (base URL: `https://panamapi.dev`)
+- **Navigation**: GoRouter (`go_router` ^17.2.1) — router defined in `lib/app.dart`; includes auth redirect guard
+- **Secure storage**: `flutter_secure_storage` ^10.0.0 — token persistence via `StorageService`
 - **Platforms**: Android, iOS, Web, Linux, macOS, Windows all enabled
 - **Pattern**: MVVM
 
@@ -51,6 +52,35 @@ Data models live in `lib/models/`. Each is a pure data class with a `fromJson` f
 | `flight.dart` | `Flight` | Imports `Airport` |
 | `account.dart` | `Account` | Imports `Payment`; flattens nested `customer` object |
 | `booking.dart` | `Booking`, `Ticket` | `Ticket` is an inline deserialization helper; `paymentId` and `rewardsPayment` are nullable |
+| `auth_token.dart` | `AuthToken` | Parsed from `/login` response; holds `token` string |
+| `login_request.dart` | `LoginRequest` | Write-only request body; `toJson()` only, no `fromJson` |
+
+## Services
+
+HTTP calls live exclusively in `lib/services/`. Never call services directly from providers or screens.
+
+| File | Class | Responsibility |
+| --- | --- | --- |
+| `dio_client.dart` | — | Global `dio` instance; base URL, JSON header, LogInterceptor |
+| `auth_service.dart` | `AuthService` | `login(LoginRequest) → Future<AuthToken>` — POST `/login` |
+| `storage_service.dart` | `StorageService` | Static; `writeToken`, `readToken`, `deleteToken` via `FlutterSecureStorage` |
+| `api_service.dart` | `ApiService` | Placeholder for future shared API logic |
+
+## Providers
+
+Riverpod providers live in `lib/providers/`. ViewModels extend `AsyncNotifier` or `Notifier`.
+
+| File | Provider | Type | Notes |
+| --- | --- | --- | --- |
+| `auth_provider.dart` | `authProvider` | `AsyncNotifierProvider<AuthNotifier, AuthToken?>` | `build()` restores token from storage; exposes `login()` and `logout()` |
+
+## Auth Flow
+
+1. App startup: `main.dart` calls `WidgetsFlutterBinding.ensureInitialized()`, then runs under `ProviderScope`
+2. `AuthNotifier.build()` attempts to restore token from `StorageService`
+3. GoRouter redirect guard reads `authProvider` — unauthenticated users are redirected to `/login`; authenticated users on `/login` or `/register` are redirected to `/search`
+4. On login: `LoginScreen` calls `authProvider.notifier.login()` → `AuthService` POSTs to `/login` → token saved via `StorageService`
+5. On logout: `authProvider.notifier.logout()` deletes token and sets state to `null`, triggering redirect to `/login`
 
 ## Screens & Routes
 

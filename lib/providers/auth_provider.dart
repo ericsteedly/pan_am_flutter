@@ -15,18 +15,12 @@ class AuthNotifier extends AsyncNotifier<AuthToken?> {
     return AuthToken(token: token);
   }
 
-  Future<void> login(
-    String username,
-    String password,
-  ) async {
+  Future<void> login(String username, String password) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       try {
         final token = await _authService.login(
-          LoginRequest(
-            username: username,
-            password: password,
-          ),
+          LoginRequest(username: username, password: password),
         );
         await StorageService.writeToken(token.token);
         return token;
@@ -43,7 +37,6 @@ class AuthNotifier extends AsyncNotifier<AuthToken?> {
   }
 }
 
-final authProvider =
-    AsyncNotifierProvider<AuthNotifier, AuthToken?>(
-      AuthNotifier.new,
-    );
+final authProvider = AsyncNotifierProvider<AuthNotifier, AuthToken?>(
+  AuthNotifier.new,
+);
