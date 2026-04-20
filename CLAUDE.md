@@ -59,11 +59,20 @@ Data models live in `lib/models/`. Each is a pure data class with a `fromJson` f
 
 HTTP calls live exclusively in `lib/services/`. Never call services directly from providers or screens.
 
-| File | Class | Responsibility |
+Services are classes with `static` methods. Token auth is handled automatically by a Dio interceptor in `dio_client.dart` — no token parameter needed in individual service methods.
+
+| File | Function / Class | Responsibility |
 | --- | --- | --- |
-| `dio_client.dart` | — | Global `dio` instance; base URL, JSON header, LogInterceptor |
+| `dio_client.dart` | — | Global `dio` instance; base URL `https://panamapi.dev`, JSON header, LogInterceptor, token auth interceptor |
 | `auth_service.dart` | `AuthService` | `login(LoginRequest) → Future<AuthToken>` — POST `/login` |
 | `storage_service.dart` | `StorageService` | Static; `writeToken`, `readToken`, `deleteToken` via `FlutterSecureStorage` |
+| `account_service.dart` | `AccountService` | `static getAccount() → Future<Account>` — GET `/account` |
+| `airport_service.dart` | `AirportService` | `static getAirports() → Future<List<Airport>>` — GET `/airports` |
+| `flight_service.dart` | `FlightService` | `static getFlights({departureAirportId, arrivalAirportId, departureDay}) → Future<List<Flight>>` — GET `/flights` |
+| `booking_service.dart` | `BookingService` | `static getBookings() → Future<List<Booking>>` — GET `/bookings` |
+| `payment_service.dart` | `PaymentService` | `static getPayments() → Future<List<Payment>>` — GET `/payments` |
+| `ticket_service.dart` | `TicketService` | Stub — POST `/tickets` (not yet implemented) |
+| `register_service.dart` | `RegisterService` | Stub — POST `/register_user` (not yet implemented) |
 | `api_service.dart` | `ApiService` | Placeholder for future shared API logic |
 
 ## Providers
