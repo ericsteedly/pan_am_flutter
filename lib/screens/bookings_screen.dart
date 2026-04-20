@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/pan_am_app_bar.dart';
 
 class BookingsScreen extends StatelessWidget {
   const BookingsScreen({super.key});
@@ -6,7 +7,7 @@ class BookingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bookings')),
+      appBar: const PanAmAppBar(),
       body: const Center(child: Text('Bookings Screen')),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/pan_am_app_bar.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key, required this.id});
@@ -8,7 +9,7 @@ class AccountScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Account')),
+      appBar: const PanAmAppBar(),
       body: const Center(child: Text('Account Screen')),
     );
   }
