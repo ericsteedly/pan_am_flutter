@@ -4,10 +4,11 @@ import 'app.dart';
 import 'services/storage_service.dart';
 
 void main() async {
-  //TEMP TOKEN DELETE, REMOVE AFTER LOGOUT CREATED
   WidgetsFlutterBinding.ensureInitialized();
+  //TEMP TOKEN DELETE, REMOVE AFTER LOGOUT CREATED
   await StorageService.deleteToken();
   //
+
   runApp(const ProviderScope(child: MainApp()));
 }
 

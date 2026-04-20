@@ -25,6 +25,7 @@ class AuthNotifier extends AsyncNotifier<AuthToken?> {
         await StorageService.writeToken(token.token);
         return token;
       } catch (e) {
+        //remove
         print('Login error: ${e}');
         rethrow;
       }
