@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/booking.dart';
 import '../models/flight.dart';
 import '../services/booking_service.dart';
 import '../services/flight_service.dart';
@@ -13,8 +14,9 @@ class FlightsState {
     this.leg = FlightLeg.depart,
     this.selectedDepartFlight,
     this.selectedReturnFlight,
-    this.departBookingId,
-    this.returnBookingId,
+    this.departBooking,
+    this.returnBooking,
+    this.bookingConfirmed = false,
   });
 
   final String tripType;
@@ -23,8 +25,9 @@ class FlightsState {
   final List<FlightResult>? returnFlights;
   final FlightResult? selectedDepartFlight;
   final FlightResult? selectedReturnFlight;
-  final int? departBookingId;
-  final int? returnBookingId;
+  final Booking? departBooking;
+  final Booking? returnBooking;
+  final bool bookingConfirmed;
 
   FlightsState copyWith({
     String? tripType,
@@ -33,8 +36,9 @@ class FlightsState {
     Object? returnFlights = _sentinel,
     Object? selectedDepartFlight = _sentinel,
     Object? selectedReturnFlight = _sentinel,
-    Object? departBookingId = _sentinel,
-    Object? returnBookingId = _sentinel,
+    Object? departBooking = _sentinel,
+    Object? returnBooking = _sentinel,
+    bool? bookingConfirmed,
   }) {
     return FlightsState(
       tripType: tripType ?? this.tripType,
@@ -49,12 +53,13 @@ class FlightsState {
       selectedReturnFlight: selectedReturnFlight == _sentinel
           ? this.selectedReturnFlight
           : selectedReturnFlight as FlightResult?,
-      departBookingId: departBookingId == _sentinel
-          ? this.departBookingId
-          : departBookingId as int?,
-      returnBookingId: returnBookingId == _sentinel
-          ? this.returnBookingId
-          : returnBookingId as int?,
+      departBooking: departBooking == _sentinel
+          ? this.departBooking
+          : departBooking as Booking?,
+      returnBooking: returnBooking == _sentinel
+          ? this.returnBooking
+          : returnBooking as Booking?,
+      bookingConfirmed: bookingConfirmed ?? this.bookingConfirmed,
     );
   }
 }
@@ -109,10 +114,10 @@ class FlightsNotifier extends AsyncNotifier<FlightsState?> {
     if (current == null) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final bookingId = await BookingService.createBooking(flight.flightIds);
+      final booking = await BookingService.createBooking(flight.flightIds);
       return current.copyWith(
         selectedDepartFlight: flight,
-        departBookingId: bookingId,
+        departBooking: booking,
         leg: FlightLeg.returnLeg,
       );
     });
@@ -123,22 +128,63 @@ class FlightsNotifier extends AsyncNotifier<FlightsState?> {
     if (current == null) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final bookingId = await BookingService.createBooking(flight.flightIds);
+      final booking = await BookingService.createBooking(flight.flightIds);
+      // For oneway trips this method books the single departure leg,
+      // so store in departBooking to keep PurchaseScreen logic consistent.
+      if (current.tripType == 'oneway') {
+        return current.copyWith(
+          selectedReturnFlight: flight,
+          departBooking: booking,
+        );
+      }
       return current.copyWith(
         selectedReturnFlight: flight,
-        returnBookingId: bookingId,
+        returnBooking: booking,
       );
     });
+  }
+
+  Future<void> bookTrip(int paymentId) async {
+    final current = state.value;
+    if (current == null || current.departBooking == null) return;
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await BookingService.updateBookingPayment(
+        current.departBooking!.id,
+        paymentId,
+      );
+      if (current.returnBooking != null) {
+        await BookingService.updateBookingPayment(
+          current.returnBooking!.id,
+          paymentId,
+        );
+      }
+      return current.copyWith(bookingConfirmed: true);
+    });
+  }
+
+  void cancelAndReset() {
+    final current = state.value;
+    if (current?.departBooking != null) {
+      BookingService.deleteBooking(current!.departBooking!.id).ignore();
+    }
+    if (current?.returnBooking != null) {
+      BookingService.deleteBooking(current!.returnBooking!.id).ignore();
+    }
+    state = const AsyncValue.data(null);
   }
 
   void resetToDepart() {
     final current = state.value;
     if (current == null) return;
+    if (current.departBooking != null) {
+      BookingService.deleteBooking(current.departBooking!.id).ignore();
+    }
     state = AsyncValue.data(
       current.copyWith(
         leg: FlightLeg.depart,
         selectedDepartFlight: null,
-        departBookingId: null,
+        departBooking: null,
       ),
     );
   }
