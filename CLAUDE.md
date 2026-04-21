@@ -69,7 +69,7 @@ Services are classes with `static` methods. Token auth is handled automatically 
 | `account_service.dart` | `AccountService` | `static getAccount() → Future<Account>` — GET `/account` |
 | `airport_service.dart` | `AirportService` | `static getAirports() → Future<List<Airport>>` — GET `/airports` |
 | `flight_service.dart` | `FlightService` | `static getFlights({departureAirportId, arrivalAirportId, departureDay}) → Future<List<FlightResult>>` — GET `/flights`; response mixes direct and connected flight shapes |
-| `booking_service.dart` | `BookingService` | `static getBookings() → Future<List<Booking>>` — GET `/bookings`; `static createBooking(List<int> flightIds) → Future<int>` — POST `/bookings` with body `[{"flight_id": N}]`, returns new booking `id` |
+| `booking_service.dart` | `BookingService` | `static getBookings() → Future<List<Booking>>` — GET `/bookings`; `static getBooking(int id) → Future<Booking>` — GET `/bookings/{id}`; `static createBooking(List<int> flightIds) → Future<Booking>` — POST `/bookings` with body `[{"flight_id": N}]`, returns full `Booking` object |
 | `payment_service.dart` | `PaymentService` | `static getPayments() → Future<List<Payment>>` — GET `/payments` |
 | `ticket_service.dart` | `TicketService` | Stub — POST `/tickets` (not yet implemented) |
 | `register_service.dart` | `RegisterService` | Stub — POST `/register_user` (not yet implemented) |
@@ -84,7 +84,7 @@ Riverpod providers live in `lib/providers/`. ViewModels extend `AsyncNotifier` o
 | `auth_provider.dart` | `authProvider` | `AsyncNotifierProvider<AuthNotifier, AuthToken?>` | `build()` restores token from storage; exposes `login()` and `logout()` |
 | `airports_provider.dart` | `airportsProvider` | `AsyncNotifierProvider<AirportsNotifier, List<Airport>>` | Load-once; `build()` calls `AirportService.getAirports()` |
 | `search_form_provider.dart` | `searchFormProvider` | `NotifierProvider<SearchFormNotifier, SearchFormState>` | Manages trip type, airport selection (mutual exclusion), date constraints, and validation; exposes `availableDepartAirports()` / `availableArriveAirports()` helpers |
-| `flights_provider.dart` | `flightsProvider` | `AsyncNotifierProvider<FlightsNotifier, FlightsState?>` | `search()` fetches depart (and return for roundtrip) legs in parallel; `selectDepartFlight()` creates depart booking and transitions `leg` to `returnLeg`; `confirmReturnFlight()` creates return booking; `resetToDepart()` / `reset()` for back navigation; `FlightsState` holds `departBookingId` and `returnBookingId` separately for use by `PurchaseScreen` |
+| `flights_provider.dart` | `flightsProvider` | `AsyncNotifierProvider<FlightsNotifier, FlightsState?>` | `search()` fetches depart (and return for roundtrip) legs in parallel; `selectDepartFlight()` creates depart booking and transitions `leg` to `returnLeg`; `confirmReturnFlight()` creates return booking; `resetToDepart()` / `reset()` for back navigation; `FlightsState` holds `departBooking: Booking?` and `returnBooking: Booking?` (full objects, not just IDs) for use by `PurchaseScreen` |
 
 ## Widgets
 
@@ -116,7 +116,7 @@ The router is a Riverpod `routerProvider` (not a global) — `MainApp` watches i
 | `/register`    | `RegisterScreen` | Stub | `PanAmAppBar` only |
 | `/search`      | `SearchScreen`   | Implemented | Full form; watches `airportsProvider`, `searchFormProvider`, `flightsProvider`; navigates to `/results` on search success |
 | `/results`     | `ResultsScreen`  | Implemented | `ConsumerStatefulWidget`; reads `flightsProvider` + `searchFormProvider`; handles depart and return legs via `FlightLeg` enum; back navigation via `PopScope`; navigates to `/purchase` when `selectedReturnFlight` is set |
-| `/purchase`    | `PurchaseScreen` | Stub | Next to build; `departBookingId` + `returnBookingId` available in `flightsProvider` state |
+| `/purchase`    | `PurchaseScreen` | Implemented | `ConsumerWidget`; reads `departBooking` + `returnBooking` from `flightsProvider`; single screen handles both oneway and roundtrip via conditional rendering; shows flight rows (one per booking), price summary panel (14.36% tax rate), stub payment controls; "CANCEL BOOKING" resets state and navigates to `/search` |
 | `/bookings`    | `BookingsScreen` | Stub | |
 | `/booking/:id` | `BookingScreen`  | Stub | Detail view for a booking |
 | `/account/:id` | `AccountScreen`  | Stub | Uses placeholder id `'me'` in `MainMenu` until account provider is wired |
@@ -126,10 +126,10 @@ The router is a Riverpod `routerProvider` (not a global) — `MainApp` watches i
 The multi-screen booking flow is tracked in `flightsProvider` (`FlightsState`):
 
 1. **SearchScreen** — builds query, calls `flightsProvider.notifier.search()`, navigates to `/results`
-2. **ResultsScreen (depart leg)** — reads `flightsProvider.state.departFlights`; button is "CONTINUE" (oneway) or "NEXT FLIGHT" (roundtrip); tapping calls `selectDepartFlight()` → POST `/bookings` → stores `departBookingId`, transitions `leg` to `FlightLeg.returnLeg`
-3. **ResultsScreen (return leg, roundtrip only)** — same screen, reads `returnFlights`; `leg == FlightLeg.returnLeg`; "CONTINUE" calls `confirmReturnFlight()` → POST `/bookings` → stores `returnBookingId`, sets `selectedReturnFlight`, triggers navigation to `/purchase`
+2. **ResultsScreen (depart leg)** — reads `flightsProvider.state.departFlights`; button is "CONTINUE" (oneway) or "NEXT FLIGHT" (roundtrip); tapping calls `selectDepartFlight()` → POST `/bookings` → stores full `departBooking: Booking`, transitions `leg` to `FlightLeg.returnLeg`
+3. **ResultsScreen (return leg, roundtrip only)** — same screen, reads `returnFlights`; `leg == FlightLeg.returnLeg`; "CONTINUE" calls `confirmReturnFlight()` → POST `/bookings` → stores full `returnBooking: Booking`, sets `selectedReturnFlight`, triggers navigation to `/purchase`
 4. **ResultsScreen (oneway)** — depart leg only; "CONTINUE" calls `confirmReturnFlight()` directly, same navigation outcome
-5. **PurchaseScreen** — stub; both `departBookingId` and `returnBookingId` are available in `FlightsState`
+5. **PurchaseScreen** — shows flight breakdown from `departBooking` + `returnBooking`; price panel with 14.36% tax; stub payment controls; "CANCEL BOOKING" resets and navigates to `/search`
 
 `FlightLeg` enum (`depart` / `returnLeg`) in `FlightsState` drives which list and button the Results screen renders. Back navigation: return leg → `resetToDepart()`; depart leg → `reset()` + go to `/search`.
 

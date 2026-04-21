@@ -15,13 +15,22 @@ class BookingService {
     }
   }
 
-  static Future<int> createBooking(List<int> flightIds) async {
+  static Future<Booking> getBooking(int id) async {
+    try {
+      final response = await dio.get('/bookings/$id');
+      return Booking.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception('Failed to fetch booking: ${e.message}');
+    }
+  }
+
+  static Future<Booking> createBooking(List<int> flightIds) async {
     try {
       final response = await dio.post(
         '/bookings',
         data: flightIds.map((id) => {'flight_id': id}).toList(),
       );
-      return response.data['id'] as int;
+      return Booking.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Failed to create booking: ${e.message}');
     }
