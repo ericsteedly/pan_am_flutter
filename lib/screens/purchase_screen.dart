@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/pan_am_app_bar.dart';
 
 class PurchaseScreen extends StatelessWidget {
   const PurchaseScreen({super.key});
@@ -6,7 +7,7 @@ class PurchaseScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Purchase')),
+      appBar: const PanAmAppBar(),
       body: const Center(child: Text('Purchase Screen')),
     );
   }

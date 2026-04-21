@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'storage_service.dart';
 
 final dio =
@@ -19,7 +20,9 @@ final dio =
               if (token != null) {
                 options.headers['Authorization'] = 'Token $token';
               }
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('dio_client: failed to read auth token: $e');
+            }
             handler.next(options);
           },
         ),
