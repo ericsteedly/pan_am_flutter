@@ -140,9 +140,23 @@ class FlightsNotifier extends AsyncNotifier<FlightsState?> {
     });
   }
 
+  void cancelAndReset() {
+    final current = state.value;
+    if (current?.departBooking != null) {
+      BookingService.deleteBooking(current!.departBooking!.id).ignore();
+    }
+    if (current?.returnBooking != null) {
+      BookingService.deleteBooking(current!.returnBooking!.id).ignore();
+    }
+    state = const AsyncValue.data(null);
+  }
+
   void resetToDepart() {
     final current = state.value;
     if (current == null) return;
+    if (current.departBooking != null) {
+      BookingService.deleteBooking(current.departBooking!.id).ignore();
+    }
     state = AsyncValue.data(
       current.copyWith(
         leg: FlightLeg.depart,

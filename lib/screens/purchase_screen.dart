@@ -105,7 +105,7 @@ class PurchaseScreen extends ConsumerWidget {
                     const SizedBox(height: 24),
                     _PaymentRow(
                       onCancel: () {
-                        ref.read(flightsProvider.notifier).reset();
+                        ref.read(flightsProvider.notifier).cancelAndReset();
                         context.go('/search');
                       },
                     ),

@@ -24,6 +24,14 @@ class BookingService {
     }
   }
 
+  static Future<void> deleteBooking(int id) async {
+    try {
+      await dio.delete('/bookings/$id');
+    } on DioException catch (e) {
+      throw Exception('Failed to delete booking: ${e.message}');
+    }
+  }
+
   static Future<Booking> createBooking(List<int> flightIds) async {
     try {
       final response = await dio.post(
