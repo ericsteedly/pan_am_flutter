@@ -23,7 +23,7 @@ flutter build web        # Web
 
 - **State management**: Riverpod (`flutter_riverpod` ^3.3.1) — `ProviderScope` wraps `main()` in `main.dart`
 - **HTTP**: Dio (`dio` ^5.9.2) — global instance configured in `lib/services/dio_client.dart` (base URL: `https://panamapi.dev`)
-- **Navigation**: GoRouter (`go_router` ^17.2.1) — router defined in `lib/app.dart`; includes auth redirect guard
+- **Navigation**: GoRouter (`go_router` ^17.2.1) — `routerProvider` in `lib/app.dart`; reactive auth redirect via `_RouterNotifier` + `refreshListenable`
 - **Secure storage**: `flutter_secure_storage` ^10.0.0 — token persistence via `StorageService`
 - **Platforms**: Android, iOS, Web, Linux, macOS, Windows all enabled
 - **Pattern**: MVVM
@@ -82,6 +82,19 @@ Riverpod providers live in `lib/providers/`. ViewModels extend `AsyncNotifier` o
 | File | Provider | Type | Notes |
 | --- | --- | --- | --- |
 | `auth_provider.dart` | `authProvider` | `AsyncNotifierProvider<AuthNotifier, AuthToken?>` | `build()` restores token from storage; exposes `login()` and `logout()` |
+| `airports_provider.dart` | `airportsProvider` | `AsyncNotifierProvider<AirportsNotifier, List<Airport>>` | Load-once; `build()` calls `AirportService.getAirports()` |
+| `search_form_provider.dart` | `searchFormProvider` | `NotifierProvider<SearchFormNotifier, SearchFormState>` | Manages trip type, airport selection (mutual exclusion), date constraints, and validation; exposes `availableDepartAirports()` / `availableArriveAirports()` helpers |
+| `flights_provider.dart` | `flightsProvider` | `AsyncNotifierProvider<FlightsNotifier, FlightsState?>` | `search()` fetches depart (and return for roundtrip) legs in parallel; `selectDepartFlight()` transitions `FlightLeg` for multi-leg flow; `build()` returns `null` until search is triggered |
+
+## Widgets
+
+Reusable widgets live in `lib/widgets/`. All screens use `PanAmAppBar` as their `Scaffold` appBar.
+
+| File | Class | Notes |
+| --- | --- | --- |
+| `pan_am_app_bar.dart` | `PanAmAppBar` | Implements `PreferredSizeWidget`; blue bar (`0xFF1565C0`), bold title, italic tagline, `MainMenu` in actions |
+| `main_menu.dart` | `MainMenu` | `ConsumerWidget`; `PopupMenuButton` with Book Flight / Account / Bookings navigation and Logout wired to `authProvider.notifier.logout()` |
+| `airport_select.dart` | `AirportSelect` | `Autocomplete<Airport>` with depart/arrive icons; `onChanged` callback; tap-to-reopen clears field; `GestureDetector` on screen body dismisses via `FocusScope.of(context).unfocus()` |
 
 ## Auth Flow
 
@@ -93,18 +106,30 @@ Riverpod providers live in `lib/providers/`. ViewModels extend `AsyncNotifier` o
 
 ## Screens & Routes
 
-Screens live flat under `lib/screens/`. Routes are declared in `lib/app.dart`:
+Screens live flat under `lib/screens/`. Routes are declared in `lib/app.dart`.
+The router is a Riverpod `routerProvider` (not a global) — `MainApp` watches it as a `ConsumerWidget`.
 
-| Route          | Screen           | Notes                     |
-| -------------- | ---------------- | ------------------------- |
-| `/login`       | `LoginScreen`    | Initial route             |
-| `/register`    | `RegisterScreen` |                           |
-| `/search`      | `SearchScreen`   |                           |
-| `/results`     | `ResultsScreen`  |                           |
-| `/purchase`    | `PurchaseScreen` |                           |
-| `/bookings`    | `BookingsScreen` |                           |
-| `/booking/:id` | `BookingScreen`  | Detail view for a booking |
-| `/account/:id` | `AccountScreen`  | User account/profile      |
+| Route          | Screen           | Status | Notes |
+| -------------- | ---------------- | ------ | ----- |
+| `/login`       | `LoginScreen`    | Implemented | Initial route; wired to `authProvider` |
+| `/register`    | `RegisterScreen` | Stub | `PanAmAppBar` only |
+| `/search`      | `SearchScreen`   | Implemented | Full form; watches `airportsProvider`, `searchFormProvider`, `flightsProvider`; navigates to `/results` on search success |
+| `/results`     | `ResultsScreen`  | Stub | Next to build; will read `flightsProvider` for `FlightsState` |
+| `/purchase`    | `PurchaseScreen` | Stub | |
+| `/bookings`    | `BookingsScreen` | Stub | |
+| `/booking/:id` | `BookingScreen`  | Stub | Detail view for a booking |
+| `/account/:id` | `AccountScreen`  | Stub | Uses placeholder id `'me'` in `MainMenu` until account provider is wired |
+
+## Flight Search & Booking Flow
+
+The multi-screen booking flow is tracked in `flightsProvider` (`FlightsState`):
+
+1. **SearchScreen** — builds query, calls `flightsProvider.notifier.search()`, navigates to `/results`
+2. **ResultsScreen (depart leg)** — reads `flightsProvider.state.departFlights`; button label is "Continue" (oneway) or "Next Flight" (roundtrip); selecting a flight calls `flightsProvider.notifier.selectDepartFlight(flight)` which will eventually trigger a booking POST and transition `leg` to `FlightLeg.returnLeg`
+3. **ResultsScreen (return leg, roundtrip only)** — same screen, reads `returnFlights`; `leg == FlightLeg.returnLeg`; "Continue" triggers return booking POST then navigates to `/purchase`
+4. **PurchaseScreen** — final step after both legs booked
+
+`FlightLeg` enum (`depart` / `returnLeg`) in `FlightsState` drives which list and button the Results screen renders. `BookingService` POST methods are not yet implemented.
 
 ## Validation
 

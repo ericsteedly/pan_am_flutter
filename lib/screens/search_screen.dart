@@ -122,115 +122,123 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     List<Airport> airports,
     bool isSearching,
   ) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      child: Center(
-        child: Card(
-          elevation: 3,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Book a Flight',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                RadioGroup<String>(
-                  groupValue: formState.tripType,
-                  onChanged: (v) =>
-                      ref.read(searchFormProvider.notifier).setTripType(v!),
-                  child: const Row(
-                    children: [
-                      Radio<String>(value: 'oneway'),
-                      Text('Oneway'),
-                      Radio<String>(value: 'roundtrip'),
-                      Text('Roundtrip'),
-                    ],
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Center(
+          child: Card(
+            elevation: 3,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Book a Flight',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 8),
-                AirportSelect(
-                  label: 'Depart',
-                  airports: ref
-                      .read(searchFormProvider.notifier)
-                      .availableDepartAirports(airports),
-                  onChanged: (a) =>
-                      ref.read(searchFormProvider.notifier).setDepartAirport(a),
-                ),
-                AirportSelect(
-                  label: 'Arrive',
-                  airports: ref
-                      .read(searchFormProvider.notifier)
-                      .availableArriveAirports(airports),
-                  onChanged: (a) =>
-                      ref.read(searchFormProvider.notifier).setArriveAirport(a),
-                ),
-                const SizedBox(height: 4),
-                TextFormField(
-                  controller: _departDateController,
-                  readOnly: true,
-                  onTap: () => _pickDepartDate(formState),
-                  decoration: const InputDecoration(
-                    labelText: 'Depart Date',
-                    hintText: 'MM/DD/YYYY',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today),
+                  const SizedBox(height: 16),
+                  RadioGroup<String>(
+                    groupValue: formState.tripType,
+                    onChanged: (v) =>
+                        ref.read(searchFormProvider.notifier).setTripType(v!),
+                    child: const Row(
+                      children: [
+                        Radio<String>(value: 'oneway'),
+                        Text('Oneway'),
+                        Radio<String>(value: 'roundtrip'),
+                        Text('Roundtrip'),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _returnDateController,
-                  readOnly: true,
-                  enabled: formState.tripType == 'roundtrip',
-                  onTap: () => _pickReturnDate(formState),
-                  decoration: const InputDecoration(
-                    labelText: 'Return Date',
-                    hintText: 'MM/DD/YYYY',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '* No flights exist beyond JUNE 30, 2026',
-                  style: TextStyle(color: Colors.red, fontSize: 12),
-                ),
-                if (formState.errors.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  ...formState.errors.map(
-                    (e) => Text(
-                      e,
-                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                  AirportSelect(
+                    label: 'Depart',
+                    airports: ref
+                        .read(searchFormProvider.notifier)
+                        .availableDepartAirports(airports),
+                    onChanged: (a) => ref
+                        .read(searchFormProvider.notifier)
+                        .setDepartAirport(a),
+                  ),
+                  AirportSelect(
+                    label: 'Arrive',
+                    airports: ref
+                        .read(searchFormProvider.notifier)
+                        .availableArriveAirports(airports),
+                    onChanged: (a) => ref
+                        .read(searchFormProvider.notifier)
+                        .setArriveAirport(a),
+                  ),
+                  const SizedBox(height: 4),
+                  TextFormField(
+                    controller: _departDateController,
+                    readOnly: true,
+                    onTap: () => _pickDepartDate(formState),
+                    decoration: const InputDecoration(
+                      labelText: 'Depart Date',
+                      hintText: 'MM/DD/YYYY',
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.calendar_today),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _returnDateController,
+                    readOnly: true,
+                    enabled: formState.tripType == 'roundtrip',
+                    onTap: () => _pickReturnDate(formState),
+                    decoration: const InputDecoration(
+                      labelText: 'Return Date',
+                      hintText: 'MM/DD/YYYY',
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.calendar_today),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '* No flights exist beyond JUNE 30, 2026',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                  if (formState.errors.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ...formState.errors.map(
+                      (e) => Text(
+                        e,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSearching
+                          ? null
+                          : () => _onSearch(formState),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF3B12C),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFFF3B12C),
+                        disabledForegroundColor: Colors.white,
+                      ),
+                      child: isSearching
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('SEARCH FLIGHT'),
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: isSearching ? null : () => _onSearch(formState),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF3B12C),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFFF3B12C),
-                      disabledForegroundColor: Colors.white,
-                    ),
-                    child: isSearching
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text('SEARCH FLIGHT'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
