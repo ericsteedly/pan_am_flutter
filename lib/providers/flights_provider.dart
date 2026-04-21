@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/flight.dart';
+import '../services/booking_service.dart';
 import '../services/flight_service.dart';
 
 enum FlightLeg { depart, returnLeg }
@@ -11,20 +12,29 @@ class FlightsState {
     this.returnFlights,
     this.leg = FlightLeg.depart,
     this.selectedDepartFlight,
+    this.selectedReturnFlight,
+    this.departBookingId,
+    this.returnBookingId,
   });
 
   final String tripType;
   final FlightLeg leg;
-  final List<Flight> departFlights;
-  final List<Flight>? returnFlights;
-  final Flight? selectedDepartFlight;
+  final List<FlightResult> departFlights;
+  final List<FlightResult>? returnFlights;
+  final FlightResult? selectedDepartFlight;
+  final FlightResult? selectedReturnFlight;
+  final int? departBookingId;
+  final int? returnBookingId;
 
   FlightsState copyWith({
     String? tripType,
     FlightLeg? leg,
-    List<Flight>? departFlights,
+    List<FlightResult>? departFlights,
     Object? returnFlights = _sentinel,
     Object? selectedDepartFlight = _sentinel,
+    Object? selectedReturnFlight = _sentinel,
+    Object? departBookingId = _sentinel,
+    Object? returnBookingId = _sentinel,
   }) {
     return FlightsState(
       tripType: tripType ?? this.tripType,
@@ -32,10 +42,19 @@ class FlightsState {
       departFlights: departFlights ?? this.departFlights,
       returnFlights: returnFlights == _sentinel
           ? this.returnFlights
-          : returnFlights as List<Flight>?,
+          : returnFlights as List<FlightResult>?,
       selectedDepartFlight: selectedDepartFlight == _sentinel
           ? this.selectedDepartFlight
-          : selectedDepartFlight as Flight?,
+          : selectedDepartFlight as FlightResult?,
+      selectedReturnFlight: selectedReturnFlight == _sentinel
+          ? this.selectedReturnFlight
+          : selectedReturnFlight as FlightResult?,
+      departBookingId: departBookingId == _sentinel
+          ? this.departBookingId
+          : departBookingId as int?,
+      returnBookingId: returnBookingId == _sentinel
+          ? this.returnBookingId
+          : returnBookingId as int?,
     );
   }
 }
@@ -85,13 +104,46 @@ class FlightsNotifier extends AsyncNotifier<FlightsState?> {
     });
   }
 
-  void selectDepartFlight(Flight flight) {
+  Future<void> selectDepartFlight(FlightResult flight) async {
+    final current = state.value;
+    if (current == null) return;
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final bookingId = await BookingService.createBooking(flight.flightIds);
+      return current.copyWith(
+        selectedDepartFlight: flight,
+        departBookingId: bookingId,
+        leg: FlightLeg.returnLeg,
+      );
+    });
+  }
+
+  Future<void> confirmReturnFlight(FlightResult flight) async {
+    final current = state.value;
+    if (current == null) return;
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final bookingId = await BookingService.createBooking(flight.flightIds);
+      return current.copyWith(
+        selectedReturnFlight: flight,
+        returnBookingId: bookingId,
+      );
+    });
+  }
+
+  void resetToDepart() {
     final current = state.value;
     if (current == null) return;
     state = AsyncValue.data(
-      current.copyWith(selectedDepartFlight: flight, leg: FlightLeg.returnLeg),
+      current.copyWith(
+        leg: FlightLeg.depart,
+        selectedDepartFlight: null,
+        departBookingId: null,
+      ),
     );
   }
+
+  void reset() => state = const AsyncValue.data(null);
 }
 
 final flightsProvider = AsyncNotifierProvider<FlightsNotifier, FlightsState?>(
