@@ -49,7 +49,7 @@ Data models live in `lib/models/`. Each is a pure data class with a `fromJson` f
 | --- | --- | --- |
 | `airport.dart` | `Airport` | |
 | `payment.dart` | `Payment` | `cardNumber` nullable — absent in nested Account responses |
-| `flight.dart` | `Flight` | Imports `Airport` |
+| `flight.dart` | `Flight`, `FlightResult`, `DirectFlight`, `ConnectedFlight` | `FlightResult` is a sealed class — `DirectFlight` wraps a single `Flight`; `ConnectedFlight` holds `flight1`/`flight2` with `totalDuration`, `totalPrice`, `totalPoints`; discriminated by presence of `flight1` key in JSON |
 | `account.dart` | `Account` | Imports `Payment`; flattens nested `customer` object |
 | `booking.dart` | `Booking`, `Ticket` | `Ticket` is an inline deserialization helper; `paymentId` and `rewardsPayment` are nullable |
 | `auth_token.dart` | `AuthToken` | Parsed from `/login` response; holds `token` string |
@@ -68,8 +68,8 @@ Services are classes with `static` methods. Token auth is handled automatically 
 | `storage_service.dart` | `StorageService` | Static; `writeToken`, `readToken`, `deleteToken` via `FlutterSecureStorage` |
 | `account_service.dart` | `AccountService` | `static getAccount() → Future<Account>` — GET `/account` |
 | `airport_service.dart` | `AirportService` | `static getAirports() → Future<List<Airport>>` — GET `/airports` |
-| `flight_service.dart` | `FlightService` | `static getFlights({departureAirportId, arrivalAirportId, departureDay}) → Future<List<Flight>>` — GET `/flights` |
-| `booking_service.dart` | `BookingService` | `static getBookings() → Future<List<Booking>>` — GET `/bookings` |
+| `flight_service.dart` | `FlightService` | `static getFlights({departureAirportId, arrivalAirportId, departureDay}) → Future<List<FlightResult>>` — GET `/flights`; response mixes direct and connected flight shapes |
+| `booking_service.dart` | `BookingService` | `static getBookings() → Future<List<Booking>>` — GET `/bookings`; `static createBooking(List<int> flightIds) → Future<int>` — POST `/bookings` with body `[{"flight_id": N}]`, returns new booking `id` |
 | `payment_service.dart` | `PaymentService` | `static getPayments() → Future<List<Payment>>` — GET `/payments` |
 | `ticket_service.dart` | `TicketService` | Stub — POST `/tickets` (not yet implemented) |
 | `register_service.dart` | `RegisterService` | Stub — POST `/register_user` (not yet implemented) |
@@ -84,7 +84,7 @@ Riverpod providers live in `lib/providers/`. ViewModels extend `AsyncNotifier` o
 | `auth_provider.dart` | `authProvider` | `AsyncNotifierProvider<AuthNotifier, AuthToken?>` | `build()` restores token from storage; exposes `login()` and `logout()` |
 | `airports_provider.dart` | `airportsProvider` | `AsyncNotifierProvider<AirportsNotifier, List<Airport>>` | Load-once; `build()` calls `AirportService.getAirports()` |
 | `search_form_provider.dart` | `searchFormProvider` | `NotifierProvider<SearchFormNotifier, SearchFormState>` | Manages trip type, airport selection (mutual exclusion), date constraints, and validation; exposes `availableDepartAirports()` / `availableArriveAirports()` helpers |
-| `flights_provider.dart` | `flightsProvider` | `AsyncNotifierProvider<FlightsNotifier, FlightsState?>` | `search()` fetches depart (and return for roundtrip) legs in parallel; `selectDepartFlight()` transitions `FlightLeg` for multi-leg flow; `build()` returns `null` until search is triggered |
+| `flights_provider.dart` | `flightsProvider` | `AsyncNotifierProvider<FlightsNotifier, FlightsState?>` | `search()` fetches depart (and return for roundtrip) legs in parallel; `selectDepartFlight()` creates depart booking and transitions `leg` to `returnLeg`; `confirmReturnFlight()` creates return booking; `resetToDepart()` / `reset()` for back navigation; `FlightsState` holds `departBookingId` and `returnBookingId` separately for use by `PurchaseScreen` |
 
 ## Widgets
 
@@ -95,6 +95,7 @@ Reusable widgets live in `lib/widgets/`. All screens use `PanAmAppBar` as their 
 | `pan_am_app_bar.dart` | `PanAmAppBar` | Implements `PreferredSizeWidget`; blue bar (`0xFF1565C0`), bold title, italic tagline, `MainMenu` in actions |
 | `main_menu.dart` | `MainMenu` | `ConsumerWidget`; `PopupMenuButton` with Book Flight / Account / Bookings navigation and Logout wired to `authProvider.notifier.logout()` |
 | `airport_select.dart` | `AirportSelect` | `Autocomplete<Airport>` with depart/arrive icons; `onChanged` callback; tap-to-reopen clears field; `GestureDetector` on screen body dismisses via `FocusScope.of(context).unfocus()` |
+| `flight_card.dart` | `FlightCard` | Renders `FlightResult` — uses `switch` on sealed type: `DirectFlight` shows single flight #, nonstop badge; `ConnectedFlight` shows flight1#/flight2#, layover code badge, total duration/price. Times formatted to 12h; duration formatted as `Xh YYm`. Amber border + filled price button when selected. |
 
 ## Auth Flow
 
@@ -114,8 +115,8 @@ The router is a Riverpod `routerProvider` (not a global) — `MainApp` watches i
 | `/login`       | `LoginScreen`    | Implemented | Initial route; wired to `authProvider` |
 | `/register`    | `RegisterScreen` | Stub | `PanAmAppBar` only |
 | `/search`      | `SearchScreen`   | Implemented | Full form; watches `airportsProvider`, `searchFormProvider`, `flightsProvider`; navigates to `/results` on search success |
-| `/results`     | `ResultsScreen`  | Stub | Next to build; will read `flightsProvider` for `FlightsState` |
-| `/purchase`    | `PurchaseScreen` | Stub | |
+| `/results`     | `ResultsScreen`  | Implemented | `ConsumerStatefulWidget`; reads `flightsProvider` + `searchFormProvider`; handles depart and return legs via `FlightLeg` enum; back navigation via `PopScope`; navigates to `/purchase` when `selectedReturnFlight` is set |
+| `/purchase`    | `PurchaseScreen` | Stub | Next to build; `departBookingId` + `returnBookingId` available in `flightsProvider` state |
 | `/bookings`    | `BookingsScreen` | Stub | |
 | `/booking/:id` | `BookingScreen`  | Stub | Detail view for a booking |
 | `/account/:id` | `AccountScreen`  | Stub | Uses placeholder id `'me'` in `MainMenu` until account provider is wired |
@@ -125,11 +126,12 @@ The router is a Riverpod `routerProvider` (not a global) — `MainApp` watches i
 The multi-screen booking flow is tracked in `flightsProvider` (`FlightsState`):
 
 1. **SearchScreen** — builds query, calls `flightsProvider.notifier.search()`, navigates to `/results`
-2. **ResultsScreen (depart leg)** — reads `flightsProvider.state.departFlights`; button label is "Continue" (oneway) or "Next Flight" (roundtrip); selecting a flight calls `flightsProvider.notifier.selectDepartFlight(flight)` which will eventually trigger a booking POST and transition `leg` to `FlightLeg.returnLeg`
-3. **ResultsScreen (return leg, roundtrip only)** — same screen, reads `returnFlights`; `leg == FlightLeg.returnLeg`; "Continue" triggers return booking POST then navigates to `/purchase`
-4. **PurchaseScreen** — final step after both legs booked
+2. **ResultsScreen (depart leg)** — reads `flightsProvider.state.departFlights`; button is "CONTINUE" (oneway) or "NEXT FLIGHT" (roundtrip); tapping calls `selectDepartFlight()` → POST `/bookings` → stores `departBookingId`, transitions `leg` to `FlightLeg.returnLeg`
+3. **ResultsScreen (return leg, roundtrip only)** — same screen, reads `returnFlights`; `leg == FlightLeg.returnLeg`; "CONTINUE" calls `confirmReturnFlight()` → POST `/bookings` → stores `returnBookingId`, sets `selectedReturnFlight`, triggers navigation to `/purchase`
+4. **ResultsScreen (oneway)** — depart leg only; "CONTINUE" calls `confirmReturnFlight()` directly, same navigation outcome
+5. **PurchaseScreen** — stub; both `departBookingId` and `returnBookingId` are available in `FlightsState`
 
-`FlightLeg` enum (`depart` / `returnLeg`) in `FlightsState` drives which list and button the Results screen renders. `BookingService` POST methods are not yet implemented.
+`FlightLeg` enum (`depart` / `returnLeg`) in `FlightsState` drives which list and button the Results screen renders. Back navigation: return leg → `resetToDepart()`; depart leg → `reset()` + go to `/search`.
 
 ## Validation
 
