@@ -16,6 +16,7 @@ class FlightsState {
     this.selectedReturnFlight,
     this.departBooking,
     this.returnBooking,
+    this.bookingConfirmed = false,
   });
 
   final String tripType;
@@ -26,6 +27,7 @@ class FlightsState {
   final FlightResult? selectedReturnFlight;
   final Booking? departBooking;
   final Booking? returnBooking;
+  final bool bookingConfirmed;
 
   FlightsState copyWith({
     String? tripType,
@@ -36,6 +38,7 @@ class FlightsState {
     Object? selectedReturnFlight = _sentinel,
     Object? departBooking = _sentinel,
     Object? returnBooking = _sentinel,
+    bool? bookingConfirmed,
   }) {
     return FlightsState(
       tripType: tripType ?? this.tripType,
@@ -56,6 +59,7 @@ class FlightsState {
       returnBooking: returnBooking == _sentinel
           ? this.returnBooking
           : returnBooking as Booking?,
+      bookingConfirmed: bookingConfirmed ?? this.bookingConfirmed,
     );
   }
 }
@@ -137,6 +141,25 @@ class FlightsNotifier extends AsyncNotifier<FlightsState?> {
         selectedReturnFlight: flight,
         returnBooking: booking,
       );
+    });
+  }
+
+  Future<void> bookTrip(int paymentId) async {
+    final current = state.value;
+    if (current == null || current.departBooking == null) return;
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await BookingService.updateBookingPayment(
+        current.departBooking!.id,
+        paymentId,
+      );
+      if (current.returnBooking != null) {
+        await BookingService.updateBookingPayment(
+          current.returnBooking!.id,
+          paymentId,
+        );
+      }
+      return current.copyWith(bookingConfirmed: true);
     });
   }
 

@@ -32,6 +32,14 @@ class BookingService {
     }
   }
 
+  static Future<void> updateBookingPayment(int id, int paymentId) async {
+    try {
+      await dio.put('/bookings/$id', data: {'payment_id': paymentId});
+    } on DioException catch (e) {
+      throw Exception('Failed to update booking payment: ${e.message}');
+    }
+  }
+
   static Future<Booking> createBooking(List<int> flightIds) async {
     try {
       final response = await dio.post(

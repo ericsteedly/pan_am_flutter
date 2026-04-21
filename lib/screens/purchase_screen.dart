@@ -4,27 +4,62 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/booking.dart';
+import '../models/payment.dart';
 import '../providers/flights_provider.dart';
+import '../providers/payments_provider.dart';
 import '../widgets/pan_am_app_bar.dart';
 
 const _taxRate = 0.1436;
 const _panAmBlue = Color(0xFF1565C0);
 
-class PurchaseScreen extends ConsumerWidget {
+class PurchaseScreen extends ConsumerStatefulWidget {
   const PurchaseScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncFlights = ref.watch(flightsProvider);
+  ConsumerState<PurchaseScreen> createState() => _PurchaseScreenState();
+}
 
-    if (asyncFlights.isLoading) {
+class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
+  int? _selectedPaymentId;
+  bool _isBooking = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final asyncFlights = ref.watch(flightsProvider);
+    final asyncPayments = ref.watch(paymentsProvider);
+
+    ref.listen(flightsProvider, (prev, next) {
+      next.whenData((data) {
+        if (data?.bookingConfirmed == true &&
+            prev?.value?.bookingConfirmed != true) {
+          ref.read(flightsProvider.notifier).reset();
+          context.go('/bookings');
+        }
+      });
+      if (next is AsyncError) {
+        setState(() => _isBooking = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${next.error}')));
+      }
+    });
+
+    ref.listen(paymentsProvider, (prev, next) {
+      if (next is AsyncError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load payment methods.')),
+        );
+      }
+    });
+
+    if (asyncFlights.isLoading && !_isBooking) {
       return const Scaffold(
         appBar: PanAmAppBar(),
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (asyncFlights.hasError) {
+    if (asyncFlights.hasError && !_isBooking) {
       return Scaffold(
         appBar: const PanAmAppBar(),
         body: Center(
@@ -44,6 +79,7 @@ class PurchaseScreen extends ConsumerWidget {
     final departBooking = flightsState.departBooking!;
     final returnBooking = flightsState.returnBooking;
     final isRoundtrip = returnBooking != null;
+    final payments = asyncPayments.value ?? [];
 
     return Scaffold(
       appBar: const PanAmAppBar(),
@@ -104,10 +140,23 @@ class PurchaseScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 24),
                     _PaymentRow(
+                      payments: payments,
+                      selectedPaymentId: _selectedPaymentId,
+                      onPaymentSelected: (id) =>
+                          setState(() => _selectedPaymentId = id),
+                      onBook: _selectedPaymentId == null || _isBooking
+                          ? null
+                          : () {
+                              setState(() => _isBooking = true);
+                              ref
+                                  .read(flightsProvider.notifier)
+                                  .bookTrip(_selectedPaymentId!);
+                            },
                       onCancel: () {
                         ref.read(flightsProvider.notifier).cancelAndReset();
                         context.go('/search');
                       },
+                      isBooking: _isBooking,
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -383,9 +432,21 @@ class _PriceRow extends StatelessWidget {
 }
 
 class _PaymentRow extends StatelessWidget {
-  const _PaymentRow({required this.onCancel});
+  const _PaymentRow({
+    required this.payments,
+    required this.selectedPaymentId,
+    required this.onPaymentSelected,
+    required this.onBook,
+    required this.onCancel,
+    required this.isBooking,
+  });
 
+  final List<Payment> payments;
+  final int? selectedPaymentId;
+  final ValueChanged<int?> onPaymentSelected;
+  final VoidCallback? onBook;
   final VoidCallback onCancel;
+  final bool isBooking;
 
   @override
   Widget build(BuildContext context) {
@@ -407,11 +468,22 @@ class _PaymentRow extends StatelessWidget {
         ),
         SizedBox(
           width: 260,
-          child: DropdownButtonFormField<String>(
-            items: const [],
-            onChanged: null,
+          child: DropdownButtonFormField<int>(
+            initialValue: selectedPaymentId,
+            items: payments
+                .map(
+                  (p) => DropdownMenuItem<int>(
+                    value: p.id,
+                    child: Text(
+                      '${p.merchant} ···· ${p.obscuredNum}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: onPaymentSelected,
+            hint: const Text('Select a Payment'),
             decoration: const InputDecoration(
-              hintText: 'Select a Payment',
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 12,
@@ -422,14 +494,23 @@ class _PaymentRow extends StatelessWidget {
           ),
         ),
         ElevatedButton(
-          onPressed: null,
+          onPressed: onBook,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFFB300),
             foregroundColor: Colors.white,
             disabledBackgroundColor: const Color(0xFFFFB300),
             disabledForegroundColor: Colors.white,
           ),
-          child: const Text('BOOK TRIP!'),
+          child: isBooking
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text('BOOK TRIP!'),
         ),
         OutlinedButton(
           onPressed: onCancel,
