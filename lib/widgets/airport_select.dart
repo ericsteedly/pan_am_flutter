@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import '../models/airport.dart';
 
 class AirportSelect extends StatelessWidget {
-  const AirportSelect({super.key, required this.label, required this.airports});
+  const AirportSelect({
+    super.key,
+    required this.label,
+    required this.airports,
+    this.onChanged,
+  });
 
   final String label;
   final List<Airport> airports;
+  final void Function(Airport?)? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +47,19 @@ class AirportSelect extends StatelessWidget {
                   a.name.toLowerCase().contains(query),
             );
           },
+          onSelected: (airport) => onChanged?.call(airport),
           fieldViewBuilder: (context, controller, focusNode, onSubmit) {
             return TextFormField(
               controller: controller,
               focusNode: focusNode,
               onFieldSubmitted: (_) => onSubmit(),
+              onTap: () {
+                controller.clear();
+                onChanged?.call(null);
+              },
+              onChanged: (value) {
+                if (value.isEmpty) onChanged?.call(null);
+              },
               decoration: const InputDecoration(
                 labelText: 'Where Would You Like To Fly? *',
                 border: OutlineInputBorder(),
