@@ -4,7 +4,7 @@ import '../models/flight.dart';
 import 'dio_client.dart';
 
 class FlightService {
-  static Future<List<Flight>> getFlights({
+  static Future<List<FlightResult>> getFlights({
     required int departureAirportId,
     required int arrivalAirportId,
     required String departureDay,
@@ -19,7 +19,7 @@ class FlightService {
         },
       );
       return (response.data as List)
-          .map((e) => Flight.fromJson(e as Map<String, dynamic>))
+          .map((e) => FlightResult.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw Exception('Failed to fetch flights: ${e.message}');

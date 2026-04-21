@@ -28,7 +28,7 @@ class AirportSelect extends StatelessWidget {
             Icon(
               label == 'Depart' ? Icons.flight_takeoff : Icons.flight_land,
               color: label == 'Depart'
-                  ? const Color(0xFF61E026)
+                  ? const Color(0xFF2E7D32)
                   : const Color(0xFFDC0B0B),
             ),
           ],

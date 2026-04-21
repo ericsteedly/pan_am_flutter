@@ -14,4 +14,16 @@ class BookingService {
       throw Exception('Failed to fetch bookings: ${e.message}');
     }
   }
+
+  static Future<int> createBooking(List<int> flightIds) async {
+    try {
+      final response = await dio.post(
+        '/bookings',
+        data: flightIds.map((id) => {'flight_id': id}).toList(),
+      );
+      return response.data['id'] as int;
+    } on DioException catch (e) {
+      throw Exception('Failed to create booking: ${e.message}');
+    }
+  }
 }
